@@ -1,0 +1,48 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+poc-app
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Build artifacts
+sbom-*.json
+*.tar
+*.tar.gz
+
+# Cosign keys
+app/cosign.key
+app/cosign.pub
+app/cosign.password
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+
+# Local registry data
+registry-data/
+
+# Temporary files
+tmp/
+temp/

@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: poc-app
+spec:
+  replicas: 3
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: poc-app
+  template:
+    metadata:
+      labels:
+        app: poc-app
+    spec:
+      containers:
+      - name: poc-app
+        image: localhost:5000/poc-app:v1.0.0
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+  strategy:
+    canary:
+      stableService: poc-app-stable
+      canaryService: poc-app-canary
+      trafficRouting:
+        nginx:
+          stableIngress: poc-app-stable
+      analysis:
+        templates:
+        - templateName: poc-analysis
+        startingStep: 2
+        args:
+        - name: service-name
+          value: poc-app-canary
+      steps:
+      - setWeight: 0
+      - setHeaderRoute:
+          name: canary-by-header
+          match:
+          - headerName: x-testing
+            headerValue:
+              exact: "true"
+      - pause: {duration: 2m}
+      - setWeight: 20
+      - pause: {duration: 30s}
+      - setWeight: 50
+      - pause: {duration: 30s}
+      - setWeight: 80
+      - pause: {duration: 30s}

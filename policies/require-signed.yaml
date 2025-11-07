@@ -1,0 +1,30 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signature
+spec:
+  validationFailureAction: enforce
+  background: false
+  rules:
+  - name: check-signature
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+          namespaces:
+          - poc-demo
+    verifyImages:
+    - imageReferences:
+      - "localhost:5000/poc-app:*"
+      mutateDigest: false
+      verifyDigest: false
+      attestors:
+      - count: 1
+        entries:
+        - keys:
+            publicKeys: |-
+              -----BEGIN PUBLIC KEY-----
+              # Run ./scripts/build-and-push.sh first to generate key
+              # Then update this with contents of app/cosign.pub
+              -----END PUBLIC KEY-----
