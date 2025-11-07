@@ -42,8 +42,8 @@ build:
 deploy: check-cluster
 	@echo "Deploying application..."
 	@kubectl apply -k k8s/base/
-	@echo "Waiting for deployment..."
-	@kubectl wait --for=condition=available --timeout=300s deployment -n poc-demo --all || true
+	@echo "Waiting for rollout..."
+	@kubectl argo rollouts status poc-app -n poc-demo --timeout=300s || true
 
 status: check-cluster
 	@./scripts/show-apps.sh status
