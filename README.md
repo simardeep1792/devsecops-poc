@@ -4,14 +4,24 @@ Enterprise-grade progressive deployment demonstration with integrated security c
 
 ## Overview
 
-This proof-of-concept implements a complete DevSecOps pipeline demonstrating how legacy applications can adopt modern deployment patterns with minimal risk. The system showcases progressive delivery, security scanning, policy enforcement, and automated rollback capabilities.
+This proof-of-concept addresses a critical organizational challenge: establishing a viable path to higher delivery velocity for legacy applications so they can participate in the DevSecOps world. Without this capability, organizations risk creating a bi-modal IT environment with modern systems receiving continuous security updates while core legacy systems accumulate vulnerabilities on unsupported software.
+
+> "If the rate of change on the outside exceeds the rate of change on the inside, the end is near." - Jack Welch
+
+DevSecOps enables security at the rate of change. This PoC demonstrates how ALL systems, including legacy applications lacking automated testing, can adopt progressive deployment patterns to:
+
+- Increase delivery cadence to pay down technical debt
+- Reduce vulnerability exposure windows
+- Encourage incremental automation
+- Enable gradual introduction of security and quality testing
 
 ### Key Capabilities
 
-- **Progressive Deployment**: Header-based canary routing with automated promotion
-- **Security Integration**: Vulnerability scanning, SBOM generation, and policy enforcement  
-- **Automated Analysis**: Metrics-driven deployment decisions with automatic rollbacks
-- **GitOps Ready**: Complete configuration management through Argo CD
+- **Progressive Deployment**: Header-based canary routing allowing QA teams to validate changes with x-testing headers
+- **Traffic Mirroring Pattern**: 100% of production traffic remains on stable version while canary receives only test traffic
+- **Automated Promotion**: After sufficient successful responses from canary, automatic replacement of stable version
+- **Security Integration**: Vulnerability scanning and SBOM generation without blocking initial adoption
+- **Metrics-Driven Decisions**: Automatic rollback based on error rates or latency, requiring no manual intervention
 
 ## Architecture
 
@@ -281,13 +291,40 @@ The application includes built-in test scenarios:
 
 These demonstrate automatic rollback capabilities.
 
+## Why This Matters for Legacy Applications
+
+Traditional DevSecOps implementations often require:
+- Comprehensive automated testing
+- Modern CI/CD pipelines
+- Cloud-native architectures
+- Skilled DevOps teams
+
+This creates a barrier for legacy applications, leading to:
+- Extended vulnerability windows
+- Inability to patch quickly
+- Growing technical debt
+- Increased security risk
+
+This PoC demonstrates an alternative path where legacy applications can:
+
+1. **Start Small**: Adopt header-based canary without changing architecture
+2. **Build Confidence**: Use QA team validation instead of automated tests initially
+3. **Increase Velocity**: Deploy more frequently with safety mechanisms
+4. **Add Automation**: Gradually introduce automated testing as confidence grows
+
+The traffic mirroring approach ensures:
+- Zero impact to production users during validation
+- QA teams control their own testing pace
+- Automatic promotion only after proven success
+- Immediate rollback if issues detected
+
 ## Contributing
 
 This PoC demonstrates patterns suitable for enterprise adoption. Key principles:
 
-1. **Security by Default**: All deployments include security scanning
-2. **Progressive Validation**: Automated metrics-based promotion decisions  
-3. **Rapid Rollback**: Immediate reversion when issues detected
-4. **GitOps Integration**: Configuration managed through version control
+1. **Incremental Adoption**: Start with manual QA validation, add automation over time
+2. **Safety First**: Production traffic never touches unproven versions
+3. **Metrics-Driven**: Decisions based on actual performance data
+4. **Legacy-Friendly**: Minimal requirements for initial adoption
 
-The implementation provides a foundation for production deployment patterns while maintaining simplicity for demonstration purposes.
+The implementation provides a foundation for bringing ALL systems into the DevSecOps fold, preventing the creation of a two-tier IT environment where only new systems benefit from modern practices.
