@@ -84,23 +84,7 @@ stop_traffic
 test_endpoint
 wait_for_key
 
-echo "Demo 5: Security Policy Enforcement"
-echo "Building unsigned image..."
-cd app/
-docker build --build-arg VERSION=unsigned -t localhost:5000/poc-app:unsigned .
-docker push localhost:5000/poc-app:unsigned
-cd ..
-echo ""
-echo "Attempting to deploy unsigned image..."
-kubectl argo rollouts set image poc-app poc-app=localhost:5000/poc-app:unsigned -n poc-demo
-echo ""
-echo "Check the deployment status (should be blocked by Kyverno)..."
-sleep 5
-kubectl get events -n poc-demo --field-selector reason=PolicyViolation
-kubectl describe rs -n poc-demo -l rollouts-pod-template-hash
-wait_for_key
-
-echo "Demo 6: View SBOM"
+echo "Demo 5: View SBOM"
 echo "Showing SBOM for v1.1.0:"
 cat sbom-v1.1.0.json | jq '.packages[0:3]'
 echo ""
@@ -111,5 +95,6 @@ echo "Key takeaways:"
 echo "- Canary deployments with header-based routing"
 echo "- Automatic promotion based on success metrics"
 echo "- Automatic rollback on failures"
-echo "- Security scanning and policy enforcement"
+echo "- Security scanning with Trivy"
+echo "- Image signing with Cosign"
 echo "- SBOM generation for compliance"
