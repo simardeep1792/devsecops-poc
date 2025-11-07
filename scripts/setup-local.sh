@@ -25,12 +25,6 @@ nodes:
     protocol: TCP
 EOF
 
-echo "Starting local registry..."
-docker run -d --restart=always -p "127.0.0.1:5000:5000" --name local-registry registry:2 || true
-
-echo "Connecting registry to kind network..."
-docker network connect "kind" local-registry || true
-
 echo "Installing NGINX Ingress Controller..."
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 
@@ -39,10 +33,12 @@ kubectl wait --namespace ingress-nginx \
   --for=condition=available deployment/ingress-nginx-controller \
   --timeout=300s
 
+echo "Waiting for NGINX Ingress pods..."
+sleep 10
 kubectl wait --namespace ingress-nginx \
   --for=condition=ready pod \
   --selector=app.kubernetes.io/component=controller \
-  --timeout=90s
+  --timeout=180s
 
 echo "Installing Prometheus..."
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
