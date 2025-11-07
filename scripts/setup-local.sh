@@ -71,13 +71,6 @@ kubectl wait --namespace argo-rollouts \
   --selector=app.kubernetes.io/name=argo-rollouts \
   --timeout=90s
 
-echo "Installing Kyverno..."
-kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.11.0/install.yaml
-kubectl wait --namespace kyverno \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/name=kyverno \
-  --timeout=90s
-
 echo "Setup complete!"
 echo ""
 echo "Access points:"
