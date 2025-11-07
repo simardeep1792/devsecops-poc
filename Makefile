@@ -42,6 +42,8 @@ build:
 deploy: check-cluster
 	@echo "Deploying application..."
 	@kubectl apply -k k8s/base/
+	@echo "Creating ArgoCD application..."
+	@kubectl apply -f argocd/application.yaml || true
 	@echo "Waiting for rollout..."
 	@kubectl argo rollouts status poc-app -n poc-demo --timeout=300s || true
 

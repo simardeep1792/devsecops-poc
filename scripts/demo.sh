@@ -247,30 +247,47 @@ function open_dashboards() {
     # Kill existing port forwards
     pkill -f "kubectl port-forward.*argocd" || true
     pkill -f "kubectl port-forward.*prometheus" || true
+    pkill -f "kubectl port-forward.*rollouts" || true
     
     # Start Argo CD port forward
-    kubectl port-forward svc/argocd-server -n argocd 8080:443 &
+    kubectl port-forward svc/argocd-server -n argocd 8080:443 >/dev/null 2>&1 &
     ARGOCD_PID=$!
     
     # Start Prometheus port forward  
-    kubectl port-forward svc/prometheus-kube-prometheus-prometheus -n monitoring 9090:9090 &
+    kubectl port-forward svc/prometheus-kube-prometheus-prometheus -n monitoring 9090:9090 >/dev/null 2>&1 &
     PROMETHEUS_PID=$!
+    
+    # Start Argo Rollouts dashboard
+    kubectl argo rollouts dashboard -n poc-demo >/dev/null 2>&1 &
+    ROLLOUTS_PID=$!
     
     sleep 3
     
+    print_info "Dashboards available at:"
+    echo ""
     print_info "Argo CD: https://localhost:8080"
-    print_info "Username: admin"
-    print_info "Password: $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
-    
+    print_info "  Username: admin"
+    print_info "  Password: $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+    echo ""
     print_info "Prometheus: http://localhost:9090"
+    print_info "  Query examples:"
+    print_info "  - rate(nginx_ingress_controller_requests[1m])"
+    print_info "  - histogram_quantile(0.95, rate(nginx_ingress_controller_request_duration_seconds_bucket[1m]))"
+    echo ""
+    print_info "Argo Rollouts: http://localhost:3100"
+    print_info "  View canary deployment progress"
     
     open_dashboard "https://localhost:8080" "Argo CD"
     open_dashboard "http://localhost:9090" "Prometheus"
+    open_dashboard "http://localhost:3100" "Argo Rollouts"
     
     print_warning "Port forwards running in background"
-    print_info "Press Ctrl+C to stop"
+    print_info "Press Ctrl+C to stop all port forwards"
+    echo ""
     
-    wait
+    # Wait for all background processes
+    trap "kill $ARGOCD_PID $PROMETHEUS_PID $ROLLOUTS_PID 2>/dev/null" EXIT
+    wait $ARGOCD_PID $PROMETHEUS_PID $ROLLOUTS_PID
 }
 
 function run_full_demo() {

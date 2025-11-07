@@ -81,8 +81,8 @@ make prerequisites
 # Create cluster and install components
 make setup
 
-# Add hostname to /etc/hosts
-echo "127.0.0.1 poc-app.local" | sudo tee -a /etc/hosts
+# Add hostnames to /etc/hosts
+echo "127.0.0.1 poc-app.local canary.poc-app.local" | sudo tee -a /etc/hosts
 ```
 
 ### 2. Application Deployment
@@ -167,7 +167,7 @@ Demonstrates: Security scanning integration and policy enforcement
 ### Traffic Routing
 
 - **Production Traffic**: `curl http://poc-app.local/version`
-- **Canary Traffic**: `curl -H "x-testing: true" http://poc-app.local/version`
+- **Canary Traffic**: `curl http://canary.poc-app.local/version`
 
 ## Monitoring and Observability
 

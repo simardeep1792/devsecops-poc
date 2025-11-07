@@ -4,13 +4,10 @@ metadata:
   name: poc-app-canary
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/canary: "true"
-    nginx.ingress.kubernetes.io/canary-by-header: "x-testing"
-    nginx.ingress.kubernetes.io/canary-by-header-value: "true"
 spec:
   ingressClassName: nginx
   rules:
-  - host: poc-app.local
+  - host: canary.poc-app.local
     http:
       paths:
       - path: /

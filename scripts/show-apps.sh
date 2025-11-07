@@ -70,11 +70,11 @@ function continuous_monitoring() {
         
         echo -e "${BLUE}Application Endpoints:${NC}"
         print_app_status "PRODUCTION (Stable)" "http://poc-app.local/version"
-        print_app_status "CANARY (Testing)" "http://poc-app.local/version" "x-testing: true"
+        print_app_status "CANARY (Testing)" "http://canary.poc-app.local/version"
         
         echo -e "${BLUE}Health Checks:${NC}"
         print_app_status "Production Health" "http://poc-app.local/health"
-        print_app_status "Canary Health" "http://poc-app.local/health" "x-testing: true"
+        print_app_status "Canary Health" "http://canary.poc-app.local/health"
         
         show_pods
         
@@ -87,7 +87,7 @@ function side_by_side_demo() {
     
     echo -e "${GREEN}This demo shows two versions running simultaneously:${NC}"
     echo -e "1. ${BLUE}Production${NC} - Stable version serving normal traffic"
-    echo -e "2. ${YELLOW}Canary${NC} - New version accessible via 'x-testing: true' header"
+    echo -e "2. ${YELLOW}Canary${NC} - New version accessible at canary.poc-app.local"
     echo ""
     
     while true; do
@@ -95,7 +95,7 @@ function side_by_side_demo() {
         print_app_status "PRODUCTION" "http://poc-app.local/version"
         
         echo -e "${YELLOW}Testing Canary Application:${NC}"
-        print_app_status "CANARY" "http://poc-app.local/version" "x-testing: true"
+        print_app_status "CANARY" "http://canary.poc-app.local/version"
         
         echo -e "${GREEN}Want to see:${NC}"
         echo "1. Continue testing"
@@ -137,7 +137,7 @@ function quick_test() {
     echo ""
     
     print_app_status "PRODUCTION (Stable)" "http://poc-app.local/version"
-    print_app_status "CANARY (Testing Header)" "http://poc-app.local/version" "x-testing: true"
+    print_app_status "CANARY (Testing)" "http://canary.poc-app.local/version"
     
     echo -e "${BLUE}Rollout Summary:${NC}"
     kubectl argo rollouts status poc-app -n poc-demo
