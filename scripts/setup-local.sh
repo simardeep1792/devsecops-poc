@@ -33,6 +33,12 @@ docker network connect "kind" local-registry || true
 
 echo "Installing NGINX Ingress Controller..."
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+echo "Waiting for NGINX Ingress deployment..."
+kubectl wait --namespace ingress-nginx \
+  --for=condition=available deployment/ingress-nginx-controller \
+  --timeout=300s
+
 kubectl wait --namespace ingress-nginx \
   --for=condition=ready pod \
   --selector=app.kubernetes.io/component=controller \
