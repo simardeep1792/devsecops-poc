@@ -41,13 +41,7 @@ spec:
           value: poc-app-canary
       steps:
       - setWeight: 0
-      - setHeaderRoute:
-          name: canary-by-header
-          match:
-          - headerName: x-testing
-            headerValue:
-              exact: "true"
-      - pause: {duration: 2m}
+      - pause: {duration: 30s}
       - setWeight: 20
       - pause: {duration: 30s}
       - setWeight: 50

@@ -1,9 +1,9 @@
-FROM golang:1.21-alpine AS builder
+FROM --platform=linux/amd64 golang:1.21-alpine AS builder
 
 WORKDIR /app
 COPY main.go go.mod* go.sum* ./
 RUN go mod init poc-app || true
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o poc-app main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o poc-app main.go
 
 FROM alpine:3.18
 

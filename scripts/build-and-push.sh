@@ -17,19 +17,20 @@ echo "Generating SBOM with Syft..."
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
   anchore/syft:latest ${IMAGE} -o spdx-json > ../sbom-${VERSION}.json
 
+echo "Pushing image to registry..."
+docker push ${IMAGE}
+
 echo "Signing image with Cosign..."
 if [ ! -f cosign.key ]; then
   echo "Generating cosign key pair..."
-  echo "" | docker run --rm -i -v "$PWD":/workspace -w /workspace \
+  printf "\n\n" | docker run --rm -i -v "$PWD":/workspace -w /workspace \
+    -e COSIGN_PASSWORD="" \
     gcr.io/projectsigstore/cosign:latest generate-key-pair
 fi
 
-COSIGN_PASSWORD="" docker run --rm -v "$PWD":/workspace -v /var/run/docker.sock:/var/run/docker.sock -w /workspace \
-  -e COSIGN_PASSWORD \
-  gcr.io/projectsigstore/cosign:latest sign --key cosign.key ${IMAGE}
-
-echo "Pushing image to registry..."
-docker push ${IMAGE}
+docker run --rm -v "$PWD":/workspace -v /var/run/docker.sock:/var/run/docker.sock -w /workspace \
+  -e COSIGN_PASSWORD="" --network=host \
+  gcr.io/projectsigstore/cosign:latest sign --key cosign.key --allow-http-registry ${IMAGE}
 
 echo "Build complete!"
 echo "Image: ${IMAGE}"
