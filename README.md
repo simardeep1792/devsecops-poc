@@ -167,7 +167,17 @@ Demonstrates: Security scanning integration and policy enforcement
 ### Traffic Routing
 
 - **Production Traffic**: `curl http://poc-app.local/version`
-- **Canary Traffic**: `curl http://canary.poc-app.local/version`
+- **Canary Traffic (Header-based)**: `curl -H "x-testing: true" http://poc-app.local/version`
+- **Canary Traffic (Direct URL)**: `curl http://canary.poc-app.local/version`
+
+Example testing both routes:
+```bash
+# Test stable version
+curl http://poc-app.local/
+
+# Test canary version with header
+curl -H "x-testing: true" http://poc-app.local/
+```
 
 ## Monitoring and Observability
 

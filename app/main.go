@@ -30,6 +30,7 @@ func init() {
 }
 
 func main() {
+	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/version", versionHandler)
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/work", workHandler)
@@ -43,6 +44,78 @@ func main() {
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	hostname, _ := os.Hostname()
+	releaseChannel := os.Getenv("RELEASE_CHANNEL")
+	if releaseChannel == "" {
+		releaseChannel = "stable"
+	}
+	
+	backgroundColor := "#4CAF50" // Green for stable
+	channelText := "STABLE"
+	if releaseChannel == "canary" {
+		backgroundColor = "#FF9800" // Amber/Orange for canary
+		channelText = "CANARY"
+	}
+	
+	html := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DevSecOps PoC - %s</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: %s;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .container {
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 4em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .info {
+            font-size: 1.5em;
+            margin: 10px 0;
+        }
+        .channel {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>%s</h1>
+        <div class="channel">%s RELEASE</div>
+        <div class="info">Hostname: %s</div>
+        <div class="info">Request Time: %s</div>
+    </div>
+</body>
+</html>
+`, version, backgroundColor, version, channelText, hostname, time.Now().Format("15:04:05"))
+	
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprint(w, html)
 }
 
 func versionHandler(w http.ResponseWriter, r *http.Request) {

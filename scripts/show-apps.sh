@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -6,6 +7,20 @@ BLUE='\033[0;34m'
 YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
+
+# Check cluster connection
+if ! kubectl cluster-info --context kind-devsecops-poc >/dev/null 2>&1; then
+    echo -e "${RED}[ERROR]${NC} Cannot connect to kind cluster 'devsecops-poc'"
+    echo -e "${YELLOW}[INFO]${NC} Run 'make setup' to create the cluster"
+    exit 1
+fi
+
+# Check if application is deployed
+if ! kubectl get rollout poc-app -n poc-demo >/dev/null 2>&1; then
+    echo -e "${RED}[ERROR]${NC} Application not deployed"
+    echo -e "${YELLOW}[INFO]${NC} Run 'make deploy' to deploy the application"
+    exit 1
+fi
 
 function print_header() {
     echo ""

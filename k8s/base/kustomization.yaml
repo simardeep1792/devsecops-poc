@@ -11,4 +11,5 @@ resources:
   - rollout.yaml
   - ingress-stable.yaml
   - ingress-canary.yaml
+  - ingress-canary-header.yaml
   - analysis-template.yaml

@@ -13,6 +13,8 @@
 1. Clone the repository
 2. Run the setup script:
    ```bash
+   make setup
+   # or
    ./scripts/setup-local.sh
    ```
 3. Add to /etc/hosts:
@@ -29,7 +31,7 @@
 
 ### Deploy via Argo Rollouts:
 ```bash
-kubectl argo rollouts set image poc-app poc-app=localhost:5000/poc-app:v1.1.0 -n poc-demo
+kubectl argo rollouts set image poc-app poc-app=simardeep1792/poc-app:v1.1.0 -n poc-demo
 ```
 
 ### Monitor rollout:
@@ -41,12 +43,68 @@ kubectl argo rollouts get rollout poc-app -n poc-demo --watch
 
 ### Test stable version:
 ```bash
+# View in browser
+curl http://poc-app.local/
+
+# Check version endpoint
 curl http://poc-app.local/version
 ```
 
 ### Test canary version:
 ```bash
+# View canary with header
+curl -H "x-testing: true" http://poc-app.local/
+
+# Check canary version
 curl -H "x-testing: true" http://poc-app.local/version
+```
+
+### Generate load for testing:
+```bash
+./scripts/generate-load.sh
+# Shows live stats with 80/20 traffic split
+# Press Ctrl+C to stop
+```
+
+## Monitoring
+
+### Access Grafana Dashboard:
+```bash
+kubectl port-forward svc/prometheus-grafana -n monitoring 3000:80
+```
+- URL: http://localhost:3000
+- Username: admin
+- Password: admin
+- Dashboard: "DevSecOps PoC - Rollout Dashboard"
+
+### Access Prometheus:
+```bash
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
+```
+- URL: http://localhost:9090
+
+### Access Argo CD:
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+- URL: https://localhost:8080
+- Username: admin
+- Password: `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d`
+
+## Validation
+
+### Run full validation:
+```bash
+make validate
+# or
+./scripts/validate.sh
+```
+
+### Quick status check:
+```bash
+make status
+# or
+./scripts/show-apps.sh status
 ```
 
 ## Troubleshooting
@@ -56,20 +114,27 @@ curl -H "x-testing: true" http://poc-app.local/version
 kubectl argo rollouts status poc-app -n poc-demo
 ```
 
-### View analysis run:
+### View analysis runs:
 ```bash
 kubectl get analysisrun -n poc-demo
+kubectl describe analysisrun -n poc-demo
 ```
 
-### Check metrics:
+### View pod logs:
 ```bash
-kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
+kubectl logs -n poc-demo -l app=poc-app --tail=100
 ```
-Then visit http://localhost:9090
 
-### View Kyverno policy violations:
+### Check ingress configuration:
 ```bash
-kubectl get events -n poc-demo --field-selector reason=PolicyViolation
+kubectl get ingress -n poc-demo
+kubectl describe ingress -n poc-demo
+```
+
+### Verify metrics collection:
+```bash
+# Check if NGINX metrics are available
+curl -s http://localhost:9090/api/v1/query?query=nginx_ingress_controller_requests
 ```
 
 ## Rollback
@@ -79,10 +144,73 @@ Automatic rollback happens when metrics fail. Manual rollback:
 kubectl argo rollouts undo poc-app -n poc-demo
 ```
 
-## Security
+Abort a canary deployment:
+```bash
+kubectl argo rollouts abort poc-app -n poc-demo
+```
 
-### Update Kyverno policy with new public key:
-1. Generate new key pair in app directory
-2. Extract public key: `cat app/cosign.pub`
-3. Update policies/require-signed.yaml
-4. Apply: `kubectl apply -f policies/require-signed.yaml`
+## Common Operations
+
+### Restart from scratch:
+```bash
+make reset
+# This runs: clean, setup, build, deploy
+```
+
+### Run full demo:
+```bash
+make demo
+```
+
+### Open all dashboards:
+```bash
+make dashboards
+```
+
+### Check prerequisites:
+```bash
+make prerequisites
+```
+
+## Image Management
+
+### List available versions:
+```bash
+docker images simardeep1792/poc-app
+```
+
+### Pull a specific version:
+```bash
+docker pull simardeep1792/poc-app:v1.1.0
+```
+
+### Check SBOM for a version:
+```bash
+cat sbom-v1.1.0.json | jq '.packages[0:5]'
+```
+
+## Tips
+
+1. **Wait for metrics**: After deployment, wait 60-90 seconds before the analysis starts
+2. **Header routing**: Always use `x-testing: true` header to test canary
+3. **Load generation**: Run load generator during demos to ensure metrics are populated
+4. **Validation**: Run `make validate` after setup to ensure everything is ready
+
+## Emergency Procedures
+
+### If rollout is stuck:
+```bash
+kubectl argo rollouts retry rollout poc-app -n poc-demo
+```
+
+### If pods won't start:
+```bash
+kubectl describe pod -n poc-demo -l app=poc-app
+kubectl events -n poc-demo
+```
+
+### Reset application state:
+```bash
+kubectl delete -k k8s/base/
+kubectl apply -k k8s/base/
+```

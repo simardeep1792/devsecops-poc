@@ -24,6 +24,7 @@ help:
 	@echo "  make dashboards    - Open monitoring dashboards"
 	@echo "  make logs          - Show application logs"
 	@echo "  make test          - Test application endpoints"
+	@echo "  make validate      - Run deployment validation checks"
 	@echo ""
 
 prerequisites:
@@ -73,6 +74,9 @@ test: check-cluster
 	@echo "Testing application endpoints..."
 	@curl -s http://poc-app.local/health || echo "Health check failed"
 	@curl -s http://poc-app.local/version || echo "Version check failed"
+
+validate: check-cluster
+	@./scripts/validate.sh
 
 clean:
 	@echo "Cleaning up..."

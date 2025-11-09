@@ -18,6 +18,9 @@ spec:
         image: simardeep1792/poc-app:v1.0.0
         ports:
         - containerPort: 8080
+        env:
+        - name: RELEASE_CHANNEL
+          value: "canary"  # Will show as canary during rollout, stable after promotion
         resources:
           requests:
             memory: "64Mi"
@@ -29,6 +32,9 @@ spec:
     canary:
       stableService: poc-app-stable
       canaryService: poc-app-canary
+      canaryMetadata:
+        labels:
+          role: canary
       trafficRouting:
         nginx:
           stableIngress: poc-app-stable

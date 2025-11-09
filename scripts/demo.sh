@@ -69,6 +69,22 @@ function check_prerequisites() {
         exit 1
     fi
     
+    # Check cluster connection
+    if ! kubectl cluster-info --context kind-devsecops-poc >/dev/null 2>&1; then
+        print_error "Cannot connect to kind cluster 'devsecops-poc'"
+        print_info "Run 'make setup' to create the cluster"
+        exit 1
+    fi
+    
+    # Check if required namespaces exist
+    for ns in poc-demo monitoring; do
+        if ! kubectl get namespace "$ns" >/dev/null 2>&1; then
+            print_warning "Namespace '$ns' not found"
+            print_info "Run 'make setup' to complete installation"
+            exit 1
+        fi
+    done
+    
     print_info "All prerequisites met ✓"
 }
 
@@ -191,13 +207,28 @@ function demo_initial_state() {
 
 function demo_canary_deployment() {
     print_header "Demo 2: Successful Canary Deployment (v1.1.0)"
+    
+    print_info "What will happen:"
+    echo "  1. Deploy v1.1.0 as canary (starts at 0% traffic)"
+    echo "  2. Progressively increase traffic: 0% → 20% → 50% → 80% → 100%"
+    echo "  3. Each step waits 30s and checks success rate > 99%"
+    echo "  4. Automatic promotion if all checks pass"
+    wait_for_user
+    
     print_step "Building and deploying v1.1.0..."
     ./scripts/build-and-push.sh v1.1.0
+    
+    print_step "Triggering canary deployment..."
     kubectl argo rollouts set image poc-app poc-app=simardeep1792/poc-app:v1.1.0 -n poc-demo
-    print_info "Watch the rollout progress..."
+    
+    print_info "Waiting 60s for metrics to stabilize before analysis..."
+    sleep 60
+    
+    print_info "Starting traffic generation and watching rollout progress..."
     generate_traffic
     kubectl argo rollouts get rollout poc-app -n poc-demo --watch
     stop_traffic
+    
     test_endpoint
     wait_for_user
 }
@@ -257,6 +288,10 @@ function open_dashboards() {
     kubectl port-forward svc/prometheus-kube-prometheus-prometheus -n monitoring 9090:9090 >/dev/null 2>&1 &
     PROMETHEUS_PID=$!
     
+    # Start Grafana port forward
+    kubectl port-forward svc/prometheus-grafana -n monitoring 3000:80 >/dev/null 2>&1 &
+    GRAFANA_PID=$!
+    
     # Start Argo Rollouts dashboard
     kubectl argo rollouts dashboard -n poc-demo >/dev/null 2>&1 &
     ROLLOUTS_PID=$!
@@ -276,9 +311,14 @@ function open_dashboards() {
     echo ""
     print_info "Argo Rollouts: http://localhost:3100"
     print_info "  View canary deployment progress"
+    echo ""
+    print_info "Grafana: http://localhost:3000"
+    print_info "  Username: admin | Password: admin"
+    print_info "  Dashboard: DevSecOps PoC - Rollout Dashboard"
     
     open_dashboard "https://localhost:8080" "Argo CD"
     open_dashboard "http://localhost:9090" "Prometheus"
+    open_dashboard "http://localhost:3000" "Grafana"
     open_dashboard "http://localhost:3100" "Argo Rollouts"
     
     print_warning "Port forwards running in background"
@@ -286,8 +326,8 @@ function open_dashboards() {
     echo ""
     
     # Wait for all background processes
-    trap "kill $ARGOCD_PID $PROMETHEUS_PID $ROLLOUTS_PID 2>/dev/null" EXIT
-    wait $ARGOCD_PID $PROMETHEUS_PID $ROLLOUTS_PID
+    trap "kill $ARGOCD_PID $PROMETHEUS_PID $GRAFANA_PID $ROLLOUTS_PID 2>/dev/null" EXIT
+    wait $ARGOCD_PID $PROMETHEUS_PID $GRAFANA_PID $ROLLOUTS_PID
 }
 
 function run_full_demo() {
