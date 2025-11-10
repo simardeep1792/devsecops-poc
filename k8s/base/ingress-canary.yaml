@@ -4,6 +4,9 @@ metadata:
   name: poc-app-canary
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    # Ensure QA traffic always goes to canary, regardless of rollout weight
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx
   rules:

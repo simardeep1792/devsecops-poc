@@ -27,10 +27,11 @@ help:
 	@echo "  make validate      - Run deployment validation checks"
 	@echo ""
 	@echo "QA Operations:"
-	@echo "  make deploy-canary VERSION=v1.1.0 - Deploy canary at 0% traffic"
-	@echo "  make promote-20    - QA approves: Start 20% production traffic"
+	@echo "  make deploy-canary VERSION=v1.1.0 - Deploy canary with QA-only access"
+	@echo "  make qa-status     - Check QA environment and canary pods"
+	@echo "  make promote-10    - QA approves: Start 10% production traffic"
+	@echo "  make promote-20    - QA approves: Increase to 20% traffic"
 	@echo "  make promote-50    - QA approves: Increase to 50% traffic"
-	@echo "  make promote-80    - QA approves: Increase to 80% traffic"
 	@echo "  make promote-100   - QA final approval: 100% traffic"
 	@echo "  make rollback      - EMERGENCY: Full rollback to stable"
 	@echo "  make rollout-status - Show detailed rollout status"
@@ -109,31 +110,44 @@ promote: check-cluster
 	@kubectl argo rollouts promote poc-app -n poc-demo
 	@kubectl argo rollouts get rollout poc-app -n poc-demo
 
-promote-20: check-cluster
-	@echo "QA Approval: Promoting to 20% traffic..."
+promote-10: check-cluster
+	@echo "QA Approval: Starting production traffic at 10%..."
 	@kubectl argo rollouts promote poc-app -n poc-demo
+	@echo "✅ Production: 10% canary (v1.1), 90% stable (v1.0)"
+	@echo "✅ QA URL still gets 100% canary traffic"
+	@kubectl argo rollouts get rollout poc-app -n poc-demo
+
+promote-20: check-cluster
+	@echo "QA Approval: Increasing to 20% traffic..."
+	@kubectl argo rollouts promote poc-app -n poc-demo
+	@echo "✅ Production: 20% canary, 80% stable"
 	@kubectl argo rollouts get rollout poc-app -n poc-demo
 
 promote-50: check-cluster
-	@echo "QA Approval: Promoting to 50% traffic..."
+	@echo "QA Approval: Increasing to 50% traffic..."
 	@kubectl argo rollouts promote poc-app -n poc-demo
-	@kubectl argo rollouts get rollout poc-app -n poc-demo
-
-promote-80: check-cluster
-	@echo "QA Approval: Promoting to 80% traffic..."
-	@kubectl argo rollouts promote poc-app -n poc-demo
+	@echo "✅ Production: 50% canary, 50% stable"
 	@kubectl argo rollouts get rollout poc-app -n poc-demo
 
 promote-100: check-cluster
 	@echo "QA Final Approval: Promoting to 100% traffic..."
 	@kubectl argo rollouts promote poc-app -n poc-demo
+	@echo "🎉 Rollout complete! Canary is now stable."
 	@kubectl argo rollouts get rollout poc-app -n poc-demo
 
 deploy-canary: check-cluster
-	@echo "Deploying new canary version (0% traffic)..."
+	@echo "Deploying new canary version with QA-only access..."
 	@if [ -z "$(VERSION)" ]; then echo "Usage: make deploy-canary VERSION=v1.1.0"; exit 1; fi
 	@kubectl argo rollouts set image poc-app poc-app=simardeep1792/poc-app:$(VERSION) -n poc-demo
-	@echo "Canary deployed at 0% traffic. QA can test at http://poc-app-qa.local"
+	@echo ""
+	@echo "✅ Canary deployed with:"
+	@echo "   - Production traffic: 0% (all traffic to stable v1.0)"
+	@echo "   - QA URL: http://poc-app-qa.local (100% canary $(VERSION))"
+	@echo "   - Canary pods: Minimum 1 replica always running"
+	@echo ""
+	@echo "Next steps:"
+	@echo "   1. QA team validates at http://poc-app-qa.local"
+	@echo "   2. After QA approval: make promote-10"
 	@kubectl argo rollouts get rollout poc-app -n poc-demo
 
 rollback: check-cluster
@@ -154,3 +168,18 @@ rollout-status: check-cluster
 	@echo ""
 	@echo "Analysis runs:"
 	@kubectl get analysisrun -n poc-demo -l rollout=poc-app --sort-by='.metadata.creationTimestamp' | tail -5
+
+qa-status: check-cluster
+	@echo "QA Environment Status:"
+	@echo ""
+	@echo "Canary pods:"
+	@kubectl get pods -n poc-demo -l app=poc-app,role=canary -o wide || echo "No canary pods with role label"
+	@echo ""
+	@echo "Services:"
+	@kubectl get svc poc-app-canary poc-app-stable -n poc-demo
+	@echo ""
+	@echo "Endpoints:"
+	@kubectl get endpoints poc-app-canary -n poc-demo
+	@echo ""
+	@echo "Test QA URL: curl http://poc-app-qa.local/version"
+	@echo "Test Prod URL: curl http://poc-app.local/version"

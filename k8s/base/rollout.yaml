@@ -36,7 +36,8 @@ spec:
     canary:
       stableService: poc-app-stable
       canaryService: poc-app-canary
-      scaleDownDelaySeconds: 30
+      scaleDownDelaySeconds: 600  # Keep canary pods for 10 minutes after scale down
+      minPodsPerReplicaSet: 1     # Always keep at least 1 pod
       canaryMetadata:
         labels:
           role: canary
@@ -49,11 +50,19 @@ spec:
           additionalIngressAnnotations:
             canary-by-header: never
       steps:
+      # Step 1: Deploy canary with minimum 1 replica for QA testing
       - setWeight: 0
+        setCanaryScale:
+          replicas: 1  # Always keep at least 1 canary pod for QA
+      - pause: {}      # QA validation gate
+      # Step 2: Start production traffic at 10%
+      - setWeight: 10
       - pause: {}
+      # Step 3: Increase to 20%
       - setWeight: 20
       - pause: {}
+      # Step 4: Increase to 50%
       - setWeight: 50
       - pause: {}
-      - setWeight: 80
-      - pause: {}
+      # Step 5: Increase to 100%
+      - setWeight: 100
