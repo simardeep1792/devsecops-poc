@@ -1,22 +1,22 @@
 # DevSecOps PoC
 
-Enterprise-grade progressive deployment demonstration with integrated security controls, automated analysis, and GitOps workflows.
+Enterprise-grade progressive deployment with dual-URL strategy for zero-risk canary releases and mandatory QA approval gates.
 
 ## What This Does
 
-This PoC implements **zero-risk canary deployments** with **mandatory QA approval**:
+This PoC implements **always-available QA testing** with **progressive production rollouts**:
 
-### The Two URLs
-- **Production URL** (http://poc-app.local) - Your users always see stable (GREEN UI)
-- **QA URL** (http://poc-app-qa.local) - Internal QA testing only (AMBER UI)
+### The Dual-URL Strategy
+- **Production URL** (http://poc-app.local) - Always shows stable version with progressive traffic shifting
+- **QA URL** (http://poc-app-qa.local) - Always shows canary version for testing (never returns 503)
 
-### The Approval Process
-1. **Deploy at 0% traffic** - Canary runs but gets ZERO production traffic
-2. **QA validates internally** - Uses QA URL to test new version
-3. **QA approves manually** - Only then does production traffic start flowing
-4. **Gradual promotion** - 0% → 20% → 50% → 80% → 100% with approval at each step
+### The Improved Workflow
+1. **Deploy canary with guaranteed pods** - Minimum 1 canary replica always running for QA
+2. **QA tests immediately** - QA URL works instantly, no waiting for traffic shifts
+3. **Progressive production rollout** - After QA approval: 0% → 10% → 20% → 50% → 100%
+4. **Instant rollback** - Emergency rollback available at any stage
 
-**Critical Safety**: Production traffic NEVER touches canary until QA explicitly approves.
+**Key Innovation**: QA URL is decoupled from production traffic weights - QA always gets 100% canary while production follows safe progressive rollout.
 
 ## Overview
 
@@ -90,10 +90,10 @@ helm version              # >= 3.0
 
 ### What You'll See
 
-- **Production URL** (http://poc-app.local) - Always GREEN background, never shows canary
-- **QA URL** (http://poc-app-qa.local) - AMBER background during rollout, 404 when idle
+- **Production URL** (http://poc-app.local) - GREEN background (stable version)
+- **QA URL** (http://poc-app-qa.local) - AMBER background (canary version, always available)
 
-The system ensures production users NEVER see untested versions!
+The dual-URL strategy ensures QA can always test while production remains safe!
 
 ## Setup Instructions
 
@@ -129,33 +129,37 @@ make status
 - Go to: http://poc-app.local
 - You should see a **GREEN** background with "STABLE RELEASE"
 
-**Step 2: Try the QA URL**
+**Step 2: Verify the QA URL status**
 - Go to: http://poc-app-qa.local
-- You should see "404 Not Found" (this is normal - no canary exists yet)
+- Initially shows the stable version (GREEN) since no canary is deployed yet
 
-### 4. Deploy a Canary Version (Zero Production Risk)
+### 4. Deploy a Canary Version (With Always-Available QA)
 
-**Step 1: Deploy version 1.1.0 (0% traffic)**
+**Step 1: Deploy version 1.1.0**
 ```bash
 make deploy-canary VERSION=v1.1.0
 ```
 
-**Step 2: Verify rollout is paused at 0% (QA-only phase)**
+**Step 2: Verify canary deployment**
 ```bash
-make rollout-status
+make qa-status
 ```
-Should show: "Paused at step 1/8, SetWeight: 0, ActualWeight: 0"
+Shows canary pods running and endpoints available
 
-**Step 3: QA Internal Testing (CRITICAL - No production impact)**
-At this point:
-- **Production URL** (http://poc-app.local) - Still **GREEN** (all production traffic)
-- **QA URL** (http://poc-app-qa.local) - Now **AMBER** (QA testing only)
-- **ZERO production traffic** goes to canary
+**Step 3: QA Testing Phase**
+Current state:
+- **Production URL** (http://poc-app.local) - **GREEN** (100% stable v1.0)
+- **QA URL** (http://poc-app-qa.local) - **AMBER** (100% canary v1.1.0)
+- **Canary pods**: Minimum 1 replica always running
+- **Production traffic**: 0% to canary
 
-**Step 4: QA Approval Gate**
-QA team validates the canary version thoroughly via QA URL. Only when satisfied:
+**Step 4: Progressive Production Rollout**
+After QA validates the canary version:
 ```bash
-make promote-20  # This starts sending 20% production traffic to canary
+make promote-10   # Start with 10% production traffic
+make promote-20   # Increase to 20% production traffic
+make promote-50   # Increase to 50% production traffic
+make promote-100  # Complete rollout to 100%
 ```
 
 **Step 5: Monitor after QA approval**
@@ -165,20 +169,20 @@ make dashboards  # Opens Grafana at http://localhost:3000 (admin/admin)
 
 ### 5. Complete the Rollout
 
-Promote through each step with QA approval:
+After each promotion step, monitor metrics before proceeding:
+
 ```bash
-make promote-50   # QA approves: Goes to 50%
-make promote-80   # QA approves: Goes to 80%
-make promote-100  # QA final approval: Goes to 100% - canary becomes new stable
+make rollout-status  # Check current traffic distribution
 ```
 
-After final promotion:
-- http://poc-app.local - Shows v1.1.0 **GREEN** (now stable)
-- http://poc-app-qa.local - Back to 404 (no active canary)
+Final state after 100% promotion:
+- http://poc-app.local - Shows v1.1.0 **GREEN** (new stable)
+- http://poc-app-qa.local - Shows v1.1.0 **GREEN** (awaiting next canary)
 
-**Color Changes:**
-- During rollout: QA URL shows **AMBER** background (canary)
-- After 100%: New version becomes stable and shows **GREEN** background
+**Visual Indicators:**
+- **GREEN background** = Stable/Production version
+- **AMBER background** = Canary version (QA testing)
+- **Traffic percentage** = Shown in rollout status
 
 ### 6. Test Auto-Rollback
 
@@ -204,36 +208,35 @@ Watch it auto-rollback in ~2-3 minutes when metrics fail!
 
 ### Traffic Routing
 
-**Dual-URL Routing** (production-safe approach):
-- **Stable URL**: `http://poc-app.local` - Always shows green UI (production)
-- **QA URL**: `http://poc-app-qa.local` - Shows amber UI during rollout (QA only)
+**Dual-URL Strategy with Decoupled Routing**:
+- **Production URL**: `http://poc-app.local` - Follows progressive traffic weights (0% → 10% → 20% → 50% → 100%)
+- **QA URL**: `http://poc-app-qa.local` - Always routes to canary pods (100% canary traffic)
 
-### The 0% Traffic Phase (Critical QA Gate)
+### Key Architecture Improvements
 
-When a canary is deployed, it starts at **0% traffic**. This means:
+**1. Guaranteed Canary Availability:**
+- `setCanaryScale: replicas: 1` ensures minimum 1 canary pod
+- `scaleDownDelaySeconds: 600` keeps pods alive for 10 minutes
+- No more 503 errors on QA URL
 
-**What happens:**
-- Canary pods are created and running
-- QA URL (poc-app-qa.local) routes to canary pods
-- Production URL (poc-app.local) still routes 100% to stable
-- **ZERO production users see the canary**
+**2. Independent QA Testing:**
+- QA URL bypasses traffic weight controls
+- QA always gets 100% canary traffic
+- Production traffic follows safe progressive rollout
 
-**QA Validation:**
-- QA team accesses http://poc-app-qa.local (internal URL)
-- Thoroughly tests the new version (AMBER background)
-- Can run full test suites, manual testing, smoke tests
-- Production continues normally on stable version
-
-**Only after QA approval does production traffic start flowing to canary!**
-
-**Testing in Browser:**
-1. http://poc-app.local - Always shows stable (GREEN background)
-2. http://poc-app-qa.local - Shows canary during rollout (AMBER) or 404 when idle
+**3. Progressive Traffic Shifting:**
+```
+Step 1: 0% production, 100% QA → Canary validation
+Step 2: 10% production, 100% QA → Initial production exposure  
+Step 3: 20% production, 100% QA → Increased confidence
+Step 4: 50% production, 100% QA → Half production traffic
+Step 5: 100% production → Full rollout complete
+```
 
 **Visual Indicators:**
 - **GREEN background** = Stable/Production version
-- **AMBER background** = Canary version (QA validation only)
-- **404 error** = No active canary deployment
+- **AMBER background** = Canary version (QA testing)
+- **Traffic split** = Managed by Argo Rollouts progressively
 
 ## Monitoring and Observability
 
@@ -285,54 +288,61 @@ Automated SBOM generation provides:
 
 | Command | Purpose |
 |---------|---------|
-| `make promote` | Approve and promote to next rollout step |
-| `make rollback` | Immediately rollback to stable version |
-| `make pause-rollout` | Pause rollout at current weight for investigation |
-| `make rollout-status` | Show detailed rollout status and analysis runs |
+| `make deploy-canary VERSION=v1.1.0` | Deploy canary with guaranteed QA access |
+| `make qa-status` | Check QA environment and canary pod status |
+| `make promote-10` | Start production traffic at 10% |
+| `make promote-20` | Increase production traffic to 20% |
+| `make promote-50` | Increase production traffic to 50% |
+| `make promote-100` | Complete rollout to 100% |
+| `make rollback` | Emergency rollback to stable version |
+| `make rollout-status` | Show detailed rollout progress |
 
-### Step-by-Step Promotion Workflow (With Approval Gates)
+### Step-by-Step Promotion Workflow
 
-**1. Deploy new version (creates canary at 0% traffic):**
+**1. Deploy new canary version:**
 ```bash
-kubectl argo rollouts set image poc-app poc-app=simardeep1792/poc-app:v1.1.0 -n poc-demo
+make deploy-canary VERSION=v1.1.0
 ```
 
-**2. Verify canary is isolated (NO production impact):**
+**2. Verify canary environment:**
 ```bash
-make rollout-status  # Should show: SetWeight: 0, ActualWeight: 0
+make qa-status  # Shows canary pods and endpoints
+make rollout-status  # Shows SetWeight: 0, ActualWeight: 0
 ```
 
-**3. QA Internal Validation Phase:**
-- Production URL: http://poc-app.local - Still GREEN (100% stable traffic)
-- QA URL: http://poc-app-qa.local - Now AMBER (canary for testing)
-- **QA must thoroughly test the canary via QA URL**
+**3. QA Validation Phase:**
+- Production URL: http://poc-app.local - **GREEN** (100% stable v1.0)
+- QA URL: http://poc-app-qa.local - **AMBER** (100% canary v1.1)
+- Canary pods: Guaranteed minimum 1 replica running
 
-**4. QA Approval Gate #1 (Start production traffic):**
+**4. Progressive Production Rollout:**
 ```bash
-make promote  # ONLY after QA approves - moves 0% → 20%
+make promote-10   # After QA approval: 10% production traffic
+make promote-20   # Continue testing: 20% production traffic
+make promote-50   # Increased confidence: 50% production traffic
+make promote-100  # Full rollout: 100% production traffic
 ```
 
-**5. Monitor metrics and continue approvals:**
+**5. Monitor throughout deployment:**
 ```bash
-make dashboards  # Watch metrics in Grafana
-make promote     # QA approves: 20% → 50%
-make promote     # QA approves: 50% → 80%
-make promote     # QA approves: 80% → 100% (canary becomes stable)
+make dashboards     # Grafana metrics
+make rollout-status # Current traffic distribution
 ```
 
-**Each `make promote` requires explicit QA approval - no automation!**
+**Each promotion step requires explicit QA approval!**
 
-### Safety Gates
+### Safety Features
 
-**QA Approval Gates:**
-- **Gate 1**: QA validates at QA URL before ANY production traffic (0% phase)
-- **Gate 2**: QA approves each traffic increase (20%, 50%, 80%, 100%)
-- **No automation** - every promotion requires explicit QA approval
+**Dual-URL Advantages:**
+- **Always-available QA**: Canary pods guaranteed via `setCanaryScale`
+- **Zero 503 errors**: QA URL works immediately after deployment
+- **Independent testing**: QA validation decoupled from production traffic
+- **Progressive safety**: 0% → 10% → 20% → 50% → 100% with gates
 
-**Automatic Protection:**
-- Metrics must pass (99% success, <500ms latency) at each step
-- Any metric failure triggers immediate automatic rollback
-- Production traffic instantly reverts to stable on failure
+**Rollback Options:**
+- `make rollback`: Immediate abort and undo
+- Manual traffic reduction via `kubectl argo rollouts`
+- Automatic rollback on metric failures (if analysis enabled)
 
 ## Directory Structure
 
@@ -432,18 +442,19 @@ This creates a barrier for legacy applications, leading to:
 - Growing technical debt
 - Increased security risk
 
-This PoC demonstrates an alternative path where legacy applications can:
+This PoC demonstrates an enterprise-ready path where legacy applications can:
 
-1. **Start Small**: Adopt dual-URL routing without changing architecture
-2. **Build Confidence**: QA validates via dedicated URL, production stays safe
-3. **Increase Velocity**: Deploy more frequently with metric-based safety
-4. **Add Automation**: Gradually introduce automated testing as confidence grows
+1. **Start Immediately**: Deploy with guaranteed QA access (no 503 errors)
+2. **Test Independently**: QA validates without affecting production traffic
+3. **Progress Safely**: 10% → 20% → 50% → 100% with approval gates
+4. **Rollback Instantly**: Emergency rollback always available
 
-The dual-URL approach ensures:
-- Production URL always serves stable version
-- QA URL provides isolated canary validation
-- Manual approval required for each promotion step
-- Automatic rollback if metrics fail at any point
+The enhanced dual-URL strategy delivers:
+
+- **Always-available QA URL**: Minimum canary replicas guarantee access
+- **Decoupled traffic control**: QA gets 100% canary while production progresses safely
+- **Progressive rollout**: Start at 10% for safer initial exposure
+- **Manual approval gates**: Human validation at each step
 
 ## Contributing
 
