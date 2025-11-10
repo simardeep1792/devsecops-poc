@@ -46,7 +46,7 @@ print_summary() {
         echo -e "  Success Rate: ${STABLE_SUCCESS_RATE}%"
     fi
     echo ""
-    echo -e "${YELLOW}Canary Traffic (20% - x-testing: true):${NC}"
+    echo -e "${YELLOW}QA Traffic (canary validation):${NC}"
     echo -e "  Requests: ${CANARY_REQUESTS}"
     echo -e "  Success: ${GREEN}${CANARY_SUCCESS}${NC}"
     echo -e "  Errors: ${RED}${CANARY_ERRORS}${NC}"
@@ -63,7 +63,7 @@ make_request() {
     local START=$(date +%s%N)
     
     if [ "$USE_HEADER" = "true" ]; then
-        RESPONSE=$(curl -s -w "\n%{http_code}" -H "x-testing: true" "http://poc-app.local${ENDPOINT}" 2>/dev/null)
+        RESPONSE=$(curl -s -w "\n%{http_code}" "http://poc-app-qa.local${ENDPOINT}" 2>/dev/null)
         ((CANARY_REQUESTS++))
     else
         RESPONSE=$(curl -s -w "\n%{http_code}" "http://poc-app.local${ENDPOINT}" 2>/dev/null)
@@ -132,7 +132,7 @@ print_stats() {
 
 # Main execution
 echo -e "${BLUE}Starting load generator...${NC}"
-echo -e "Traffic split: 80% stable (no header), 20% canary (x-testing: true)"
+echo -e "Traffic destinations: Stable URL for production, QA URL for canary validation"
 echo ""
 echo ""
 echo ""

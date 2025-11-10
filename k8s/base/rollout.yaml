@@ -12,15 +12,19 @@ spec:
     metadata:
       labels:
         app: poc-app
+      annotations:
+        rollme: "1"
     spec:
       containers:
       - name: poc-app
         image: simardeep1792/poc-app:v1.0.0
+        env:
+        - name: DEPLOYMENT_CHANNEL
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['role']
         ports:
         - containerPort: 8080
-        env:
-        - name: RELEASE_CHANNEL
-          value: "canary"  # Will show as canary during rollout, stable after promotion
         resources:
           requests:
             memory: "64Mi"
@@ -32,25 +36,24 @@ spec:
     canary:
       stableService: poc-app-stable
       canaryService: poc-app-canary
+      scaleDownDelaySeconds: 30
       canaryMetadata:
         labels:
           role: canary
+      stableMetadata:
+        labels:
+          role: stable
       trafficRouting:
         nginx:
           stableIngress: poc-app-stable
-      analysis:
-        templates:
-        - templateName: poc-analysis
-        startingStep: 2
-        args:
-        - name: service-name
-          value: poc-app-canary
+          additionalIngressAnnotations:
+            canary-by-header: never
       steps:
       - setWeight: 0
-      - pause: {duration: 30s}
+      - pause: {}
       - setWeight: 20
-      - pause: {duration: 30s}
+      - pause: {}
       - setWeight: 50
-      - pause: {duration: 30s}
+      - pause: {}
       - setWeight: 80
-      - pause: {duration: 30s}
+      - pause: {}

@@ -5,11 +5,8 @@ namespace: poc-demo
 
 resources:
   - namespace.yaml
-  - service.yaml
   - service-stable.yaml
   - service-canary.yaml
   - rollout.yaml
   - ingress-stable.yaml
   - ingress-canary.yaml
-  - ingress-canary-header.yaml
-  - analysis-template.yaml

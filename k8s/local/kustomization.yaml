@@ -14,17 +14,3 @@ patches:
     - op: replace
       path: /spec/rules/0/host
       value: localhost
-- target:
-    kind: Ingress
-    name: poc-app-canary
-  patch: |-
-    - op: replace
-      path: /spec/rules/0/host
-      value: localhost
-- target:
-    kind: Ingress
-    name: poc-app-canary-header
-  patch: |-
-    - op: replace
-      path: /spec/rules/0/host
-      value: localhost

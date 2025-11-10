@@ -156,15 +156,15 @@ if command -v curl >/dev/null 2>&1; then
         check_fail "Stable endpoint not responding"
     fi
     
-    # Test canary with header
-    if curl -s -f -H "x-testing: true" http://poc-app.local/health >/dev/null 2>&1; then
-        check_pass "Canary endpoint (header-based) responding"
+    # Test QA URL
+    if curl -s -f http://poc-app-qa.local/health >/dev/null 2>&1; then
+        check_pass "QA URL (canary) responding"
         
         # Get version
-        VERSION=$(curl -s -H "x-testing: true" http://poc-app.local/version | jq -r '.version' 2>/dev/null || echo "unknown")
+        VERSION=$(curl -s http://poc-app-qa.local/version | jq -r '.version' 2>/dev/null || echo "unknown")
         check_pass "Canary version: $VERSION"
     else
-        check_warn "Canary endpoint (header-based) not responding"
+        check_warn "QA URL not responding (normal when no canary active)"
     fi
 else
     check_warn "curl not available, skipping endpoint tests"

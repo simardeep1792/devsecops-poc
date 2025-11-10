@@ -12,6 +12,7 @@ import (
 
 var (
 	version = os.Getenv("APP_VERSION")
+	channel = os.Getenv("DEPLOYMENT_CHANNEL")
 	errorRate = 0.0
 	latencyMs = 50
 )
@@ -19,6 +20,10 @@ var (
 func init() {
 	if version == "" {
 		version = "v1.0.0"
+	}
+	
+	if channel == "" {
+		channel = "stable"
 	}
 	
 	switch version {
@@ -48,15 +53,12 @@ func main() {
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	hostname, _ := os.Hostname()
-	releaseChannel := os.Getenv("RELEASE_CHANNEL")
-	if releaseChannel == "" {
-		releaseChannel = "stable"
-	}
 	
-	backgroundColor := "#4CAF50" // Green for stable
+	backgroundColor := "#4CAF50"
 	channelText := "STABLE"
-	if releaseChannel == "canary" {
-		backgroundColor = "#FF9800" // Amber/Orange for canary
+	
+	if channel == "canary" {
+		backgroundColor = "#FF9800"
 		channelText = "CANARY"
 	}
 	

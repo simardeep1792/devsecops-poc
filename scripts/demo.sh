@@ -122,8 +122,8 @@ function test_endpoint() {
     print_info "Stable endpoint:"
     curl -s http://poc-app.local/version | jq .
     echo ""
-    print_info "Canary endpoint (x-testing: true header):"
-    curl -s -H "x-testing: true" http://poc-app.local/version | jq .
+    print_info "QA URL (canary endpoint):"
+    curl -s http://poc-app-qa.local/version 2>/dev/null | jq . || echo "QA URL not available (no active canary)"
     echo ""
 }
 

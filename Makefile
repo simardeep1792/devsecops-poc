@@ -26,6 +26,15 @@ help:
 	@echo "  make test          - Test application endpoints"
 	@echo "  make validate      - Run deployment validation checks"
 	@echo ""
+	@echo "QA Operations:"
+	@echo "  make deploy-canary VERSION=v1.1.0 - Deploy canary at 0% traffic"
+	@echo "  make promote-20    - QA approves: Start 20% production traffic"
+	@echo "  make promote-50    - QA approves: Increase to 50% traffic"
+	@echo "  make promote-80    - QA approves: Increase to 80% traffic"
+	@echo "  make promote-100   - QA final approval: 100% traffic"
+	@echo "  make rollback      - EMERGENCY: Full rollback to stable"
+	@echo "  make rollout-status - Show detailed rollout status"
+	@echo ""
 
 prerequisites:
 	@echo "Checking prerequisites..."
@@ -93,3 +102,55 @@ reset: clean setup build deploy
 
 full-demo: setup build deploy demo
 	@echo "Full demo complete"
+
+# QA Operations
+promote: check-cluster
+	@echo "Promoting to next rollout step..."
+	@kubectl argo rollouts promote poc-app -n poc-demo
+	@kubectl argo rollouts get rollout poc-app -n poc-demo
+
+promote-20: check-cluster
+	@echo "QA Approval: Promoting to 20% traffic..."
+	@kubectl argo rollouts promote poc-app -n poc-demo
+	@kubectl argo rollouts get rollout poc-app -n poc-demo
+
+promote-50: check-cluster
+	@echo "QA Approval: Promoting to 50% traffic..."
+	@kubectl argo rollouts promote poc-app -n poc-demo
+	@kubectl argo rollouts get rollout poc-app -n poc-demo
+
+promote-80: check-cluster
+	@echo "QA Approval: Promoting to 80% traffic..."
+	@kubectl argo rollouts promote poc-app -n poc-demo
+	@kubectl argo rollouts get rollout poc-app -n poc-demo
+
+promote-100: check-cluster
+	@echo "QA Final Approval: Promoting to 100% traffic..."
+	@kubectl argo rollouts promote poc-app -n poc-demo
+	@kubectl argo rollouts get rollout poc-app -n poc-demo
+
+deploy-canary: check-cluster
+	@echo "Deploying new canary version (0% traffic)..."
+	@if [ -z "$(VERSION)" ]; then echo "Usage: make deploy-canary VERSION=v1.1.0"; exit 1; fi
+	@kubectl argo rollouts set image poc-app poc-app=simardeep1792/poc-app:$(VERSION) -n poc-demo
+	@echo "Canary deployed at 0% traffic. QA can test at http://poc-app-qa.local"
+	@kubectl argo rollouts get rollout poc-app -n poc-demo
+
+rollback: check-cluster
+	@echo "EMERGENCY: Full rollback to stable version..."
+	@kubectl argo rollouts abort poc-app -n poc-demo
+	@kubectl argo rollouts undo poc-app -n poc-demo
+	@echo "Rollback complete. All traffic back to stable."
+	@kubectl argo rollouts status poc-app -n poc-demo
+
+pause-rollout: check-cluster
+	@echo "Pausing rollout at current weight..."
+	@kubectl argo rollouts pause poc-app -n poc-demo
+	@echo "Rollout paused. Use 'make promote' to continue or 'make rollback' to abort."
+
+rollout-status: check-cluster
+	@echo "Current rollout status:"
+	@kubectl argo rollouts get rollout poc-app -n poc-demo
+	@echo ""
+	@echo "Analysis runs:"
+	@kubectl get analysisrun -n poc-demo -l rollout=poc-app --sort-by='.metadata.creationTimestamp' | tail -5
